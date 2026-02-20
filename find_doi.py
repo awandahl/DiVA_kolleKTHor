@@ -7,7 +7,7 @@ from urllib.parse import quote
 
 # -------------------- CONFIG --------------------
 
-FROM_YEAR = 1900
+FROM_YEAR = 1990
 TO_YEAR = 2000
 
 # which DiVA portal to use: e.g. "kth", "uu", "umu", "lnu", etc.
@@ -23,7 +23,7 @@ BOTH_TYPES = True   # union of scopus-only and isi-only
 SIM_THRESHOLD = 0.9
 MAX_ACCEPTED = 10
 CROSSREF_ROWS_PER_QUERY = 5
-MAILTO = "email@domain.com" # Your email address
+MAILTO = "email@domain.com"  # Your email address
 
 DOWNLOADED_CSV = "diva_raw.csv"
 OUTPUT_CSV = "doi_candidates.csv"
@@ -230,10 +230,13 @@ def main():
 
         time.sleep(1.0)
 
-    # 5) Save result
-    df_work.to_csv(OUTPUT_CSV, index=False)
+    # 5) Save result: only rows where we actually found a possible DOI
+    mask_has_possible = df_work["Possible DOI:s"].str.strip() != ""
+    df_out = df_work[mask_has_possible].copy()
+
+    df_out.to_csv(OUTPUT_CSV, index=False)
     print(f"\nAccepted {accepted_count} records.")
-    print(f"Wrote {len(df_work)} filtered rows to {OUTPUT_CSV}")
+    print(f"Wrote {len(df_out)} rows with Possible DOI:s to {OUTPUT_CSV}")
 
 if __name__ == "__main__":
     main()
