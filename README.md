@@ -282,6 +282,8 @@ In its current form, the script adds several capabilities that may not have been
 
 ## Command-line usage with cli_find_doi.py
 
+***
+
 The script can be run as a CLI tool using cli_find_doi.py Basic example:
 
 ```bash
