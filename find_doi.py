@@ -7,8 +7,8 @@ from urllib.parse import quote
 
 # -------------------- CONFIG --------------------
 
-FROM_YEAR =  2025
-TO_YEAR = 2025
+FROM_YEAR =  2023
+TO_YEAR = 2023
 
 # which DiVA portal to use: e.g. "kth", "uu", "umu", "lnu", etc.
 DIVA_PORTAL = "kth"
@@ -27,6 +27,7 @@ MAILTO = "aw@kth.se"  # Your email address
 
 DOWNLOADED_CSV = "diva_raw.csv"
 OUTPUT_CSV = "doi_candidates.csv"
+EXCEL_OUT = "doi_candidates_links.xlsx"
 
 # -------------------- HELPERS --------------------
 
@@ -44,7 +45,7 @@ def build_diva_url(from_year: int, to_year: int) -> str:
         "aqe": "[]",
         "aq2": aq2,
         "onlyFullText": "false",
-        "noOfRows": "500",
+        "noOfRows": "1000",
         "sortOrder": "title_sort_asc",
         "sortOrder2": "title_sort_asc",
         "csvType": "publication",
@@ -120,6 +121,45 @@ def search_crossref_title(title: str, year: int | None = None, max_results: int 
             results.append((doi, cand_title, cand_year))
     return results
 
+def make_scopus_url(eid: str) -> str:
+    eid = eid.strip()
+    if not eid:
+        return ""
+    return f"https://www.scopus.com/record/display.url?origin=inward&partnerID=40&eid={eid}"
+
+def make_doi_url(doi: str) -> str:
+    doi = doi.strip()
+    if not doi:
+        return ""
+    return f"https://doi.org/{doi}"
+
+def make_isi_url(isi: str) -> str:
+    isi = isi.strip()
+    if not isi:
+        return ""
+    # assume ISI/WOS is like "WOS:001606495100001"
+    return (
+        "https://gateway.webofknowledge.com/api/gateway"
+        "?GWVersion=2&SrcAuth=Name&SrcApp=sfx&DestApp=WOS"
+        "&DestLinkType=FullRecord&KeyUT=" + requests.utils.quote(isi, safe="")
+    )
+
+def make_pid_url(pid: str) -> str:
+    pid = pid.strip()
+    if not pid:
+        return ""
+
+    # If PID is a plain number like "1949624", turn it into "diva2:1949624"
+    if pid.isdigit():
+        pid_value = f"diva2:{pid}"
+    else:
+        pid_value = pid
+
+    encoded_pid = quote(pid_value, safe="")  # diva2%3A1949624
+
+    return f"https://{DIVA_PORTAL}.diva-portal.org/smash/record.jsf?pid={encoded_pid}"
+
+
 # -------------------- MAIN --------------------
 
 def main():
@@ -130,7 +170,6 @@ def main():
     # 2) Load and enforce Year range on exported Year column
     df = pd.read_csv(DOWNLOADED_CSV, dtype=str).fillna("")
     df["ISI"] = df["ISI"].astype(str).str.strip()
-
 
     # ensure Possible DOI:s exists and is placed directly after DOI
     if "Possible DOI:s" not in df.columns:
@@ -252,6 +291,49 @@ def main():
     df_out.to_csv(OUTPUT_CSV, index=False)
     print(f"\nAccepted {accepted_count} records.")
     print(f"Wrote {len(df_out)} rows with Possible DOI:s to {OUTPUT_CSV}")
+
+    # 6) Make Excel with clickable links
+    df_links = df_out.copy()
+    df_links["Scopus_link"] = df_links["ScopusId"].apply(make_scopus_url)
+    df_links["DOI_link"] = df_links["Possible DOI:s"].apply(make_doi_url)
+    df_links["ISI_link"] = df_links["ISI"].apply(make_isi_url)
+    df_links["PID_link"] = df_links["PID"].apply(make_pid_url)
+
+    # optionally move link columns next to their ids
+    cols = df_links.columns.tolist()
+    for id_col, link_col in [
+        ("ScopusId", "Scopus_link"),
+        ("Possible DOI:s", "DOI_link"),
+        ("ISI", "ISI_link"),
+        ("PID", "PID_link"),
+    ]:
+        if id_col in cols and link_col in cols:
+            cols.insert(cols.index(id_col) + 1, cols.pop(cols.index(link_col)))
+    df_links = df_links[cols]
+
+    # write Excel with real hyperlink cells that open in browser
+    with pd.ExcelWriter(EXCEL_OUT, engine="xlsxwriter") as writer:
+        df_links.to_excel(writer, index=False, sheet_name="DOI candidates")
+        ws = writer.sheets["DOI candidates"]
+
+        header = list(df_links.columns)
+        col_idx = {name: i for i, name in enumerate(header)}
+
+        for row_xl, df_idx in enumerate(df_links.index, start=1):
+            if df_links.at[df_idx, "Scopus_link"]:
+                url = df_links.at[df_idx, "Scopus_link"]
+                ws.write_url(row_xl, col_idx["Scopus_link"], url, string="Scopus")
+            if df_links.at[df_idx, "DOI_link"]:
+                url = df_links.at[df_idx, "DOI_link"]
+                ws.write_url(row_xl, col_idx["DOI_link"], url, string="DOI")
+            if df_links.at[df_idx, "ISI_link"]:
+                url = df_links.at[df_idx, "ISI_link"]
+                ws.write_url(row_xl, col_idx["ISI_link"], url, string="ISI")
+            if df_links.at[df_idx, "PID_link"]:
+                url = df_links.at[df_idx, "PID_link"]
+                ws.write_url(row_xl, col_idx["PID_link"], url, string="PID")
+
+    print(f"Wrote Excel with links to {EXCEL_OUT}")
 
 if __name__ == "__main__":
     main()
