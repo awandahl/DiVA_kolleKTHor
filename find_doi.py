@@ -7,8 +7,8 @@ from urllib.parse import quote
 
 # -------------------- CONFIG --------------------
 
-FROM_YEAR = 1990
-TO_YEAR = 2000
+FROM_YEAR =  2025
+TO_YEAR = 2025
 
 # which DiVA portal to use: e.g. "kth", "uu", "umu", "lnu", etc.
 DIVA_PORTAL = "kth"
@@ -21,9 +21,9 @@ BOTH_TYPES = True   # union of scopus-only and isi-only
 
 # Crossref matching
 SIM_THRESHOLD = 0.9
-MAX_ACCEPTED = 10
+MAX_ACCEPTED = 9999
 CROSSREF_ROWS_PER_QUERY = 5
-MAILTO = "email@domain.com"  # Your email address
+MAILTO = "aw@kth.se"  # Your email address
 
 DOWNLOADED_CSV = "diva_raw.csv"
 OUTPUT_CSV = "doi_candidates.csv"
@@ -31,23 +31,30 @@ OUTPUT_CSV = "doi_candidates.csv"
 # -------------------- HELPERS --------------------
 
 def build_diva_url(from_year: int, to_year: int) -> str:
+    # aq now filters on dateIssued
+    aq = f'[[{{"dateIssued":{{"from":"{from_year}","to":"{to_year}"}}}}]]'
     aq2 = (
-        f'[[{{"dateIssued":{{"from":"{from_year}","to":"{to_year}"}}}},'
-        '{{"publicationTypeCode":["bookReview","review","article","conferencePaper"]}}]]'
+        '[[{"publicationTypeCode":["bookReview","review","article","book",'
+        '"chapter","conferencePaper"]}]]'
     )
     params = {
         "format": "csv",
         "addFilename": "true",
-        "aq": "[[]]",
+        "aq": aq,
         "aqe": "[]",
         "aq2": aq2,
         "onlyFullText": "false",
-        "noOfRows": "9999",
-        "sortOrder": "dateIssued_sort_asc",
+        "noOfRows": "500",
+        "sortOrder": "title_sort_asc",
         "sortOrder2": "title_sort_asc",
         "csvType": "publication",
-        "fl": "PID,PublicationType,Year,DOI,ISI,ScopusId,Title",
+        "fl": (
+            "PID,ArticleId,DOI,EndPage,ISBN,ISBN_ELECTRONIC,ISBN_PRINT,ISBN_UNDEFINED,"
+            "ISI,Issue,Journal,JournalEISSN,JournalISSN,Pages,PublicationType,PMID,"
+            "ScopusId,SeriesEISSN,SeriesISSN,StartPage,Title,Volume,Year"
+        ),
     }
+
     encoded = []
     for k, v in params.items():
         encoded.append(f"{k}={quote(v, safe='')}")
@@ -122,6 +129,8 @@ def main():
 
     # 2) Load and enforce Year range on exported Year column
     df = pd.read_csv(DOWNLOADED_CSV, dtype=str).fillna("")
+    df["ISI"] = df["ISI"].astype(str).str.strip()
+
 
     # ensure Possible DOI:s exists and is placed directly after DOI
     if "Possible DOI:s" not in df.columns:
@@ -142,6 +151,12 @@ def main():
     year_mask = year_int.between(FROM_YEAR, TO_YEAR, inclusive="both")
     df = df[year_mask].copy()
     print(f"After Year filter {FROM_YEAR}-{TO_YEAR}: {len(df)} rows")
+
+    # Exclude generic front-matter titles
+    exclude_titles = {"foreword", "preface"}
+
+    df = df[~df["Title"].str.strip().str.lower().isin(exclude_titles)].copy()
+    print(f"After excluding Foreword/Preface: {len(df)} rows")
 
     # 3) Identifier logic
     has_doi = df["DOI"].str.strip() != ""
