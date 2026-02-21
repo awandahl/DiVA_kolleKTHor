@@ -282,6 +282,81 @@ In its current form, the script adds several capabilities that may not have been
 
 ***
 
+```markdown
+## Command-line usage with cli_find_doi.py
+
+The script can be run as a CLI tool using cli_find_doi.py Basic example:
+
+```bash
+python find_doi.py \
+  --diva-portal kth \
+  --from-year 2024 \
+  --to-year 2024 \
+  --both-types \
+  --sim-threshold 0.9 \
+  --crossref-rows 5 \
+  --mailto your.name@yourdomain
+```
+
+
+### Required arguments
+
+- `--from-year INT`
+Start publication year (inclusive), applied both to the DiVA export and the `Year` column filter.
+- `--to-year INT`
+End publication year (inclusive).
+
+
+### DiVA portal
+
+- `--diva-portal NAME`
+DiVA sub‑portal to query, e.g. `kth`, `uu`, `umu`, `lnu`.
+Default: `kth`.
+
+
+### Identifier selection (mutually exclusive)
+
+Choose one, otherwise the default is to process both types:
+
+- `--scopus-only`
+Only records with `ScopusId` present, `ISI` empty, and no DOI.
+- `--isi-only`
+Only records with `ISI` present, `ScopusId` empty, and no DOI.
+- `--both-types`
+Process both Scopus‑only and ISI‑only records (this is also the default if you don’t specify any of the three flags).
+
+
+### Crossref and matching parameters
+
+- `--sim-threshold FLOAT`
+Minimum title similarity (0–1) to accept a DOI.
+Default: `0.9`.
+- `--crossref-rows INT`
+Number of Crossref candidates (`rows`) per query.
+Default: `5`.
+- `--max-accepted INT`
+Maximum number of accepted DOIs before the script stops early.
+Default: `9999`.
+- `--mailto EMAIL`
+Email address passed to Crossref as `mailto` (recommended by Crossref).
+- `--sleep-seconds FLOAT`
+Seconds to sleep between Crossref queries, to avoid overloading the API.
+Default: `1.0`.
+
+
+### Output control
+
+- `--output-prefix STRING`
+Prefix for output filenames.
+Default: `"<from-year>-<to-year>_"`, producing:
+    - `<prefix>diva_raw.csv`
+    - `<prefix>doi_candidates.csv`
+    - `<prefix>doi_candidates_links.xlsx`
+
+```
+
+
+
 ## Limitations and notes
 
 - The script only **suggests** possible DOIs; final validation remains a manual task.
