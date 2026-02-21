@@ -352,9 +352,6 @@ Default: `"<from-year>-<to-year>_"`, producing:
     - `<prefix>doi_candidates.csv`
     - `<prefix>doi_candidates_links.xlsx`
 
-```
-
-
 
 ## Limitations and notes
 
