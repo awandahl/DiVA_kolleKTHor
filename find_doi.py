@@ -23,7 +23,7 @@ BOTH_TYPES = True   # union of scopus-only and isi-only
 SIM_THRESHOLD = 0.9
 MAX_ACCEPTED = 9999
 CROSSREF_ROWS_PER_QUERY = 5
-MAILTO = "aw@kth.se"  # Your email address
+MAILTO = "email@domain.com"  # Your email address
 
 RANGE_PREFIX = f"{FROM_YEAR}-{TO_YEAR}_"
 DOWNLOADED_CSV = RANGE_PREFIX + "diva_raw.csv"
