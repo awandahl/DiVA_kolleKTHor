@@ -344,7 +344,7 @@ You can sort or filter on:
 - `Verified_DOI` vs `Possible_DOI` to prioritize manual review.
 
 ---
-```
+
 ## License
 
 This project is licensed under the MIT License.
