@@ -319,13 +319,13 @@ For each DiVA record:
 Run directly:
 
 ```bash
-python find_doi_from_diva_smart.py
+python DiVA_kolleKTHor.py
 ```
 
 To save a detailed log of the CLI output (for later inspection of decisions):
 
 ```bash
-python find_doi_from_diva_smart.py 2>&1 | tee kth_2001-2002_doi.log
+python DiVA_kolleKTHor.py 2>&1 | tee kth_2001-2002_doi.log
 ```
 
 After completion, you will have:
