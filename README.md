@@ -96,6 +96,7 @@ You normally only change:
     - Date filter: `dateIssued` between `FROM_YEAR` and `TO_YEAR`.
     - Publication types: bookReview, review, article, book, chapter, conferencePaper.
     - Fields: `PID`, `DOI`, `ISI`, `ScopusId`, `PMID`, title, year, journal, volume/issue/pages, ISSNs/ISBNs, authors, notes etc.
+    
 2. **Initial filtering in the script**
 
 After reading the CSV:
